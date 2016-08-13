@@ -11,9 +11,13 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 """
 
 import os
+import sys
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = os.path.join(BASE_DIR, "{{cookiecutter.project_name}}")
+
+sys.path.insert(1, os.path.join(PROJECT_ROOT, 'apps'))
 
 
 # Quick-start development settings - unsuitable for production
@@ -37,16 +41,28 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Standard apps
+    'debug_toolbar',
+    'django_extensions',
+    'compressor',
+
+    # Project apps
+    'core',
 ]
 
-MIDDLEWARE = [
+# Should be changed to MIDDLEWARE but because of DjDT and patch settings
+# we are using old name
+MIDDLEWARE_CLASSES = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.cache.UpdateCacheMiddleware',
 ]
 
 ROOT_URLCONF = '{{cookiecutter.project_name}}.urls'
@@ -54,7 +70,9 @@ ROOT_URLCONF = '{{cookiecutter.project_name}}.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            os.path.join(PROJECT_ROOT, "templates"),
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -62,13 +80,13 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.development_settings',
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = '{{cookiecutter.project_name}}.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/1.10/ref/settings/#databases
@@ -117,4 +135,38 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
 
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'compressor.finders.CompressorFinder',
+)
+
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(
+    PROJECT_ROOT,
+    "site_media",
+    "static",
+)
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(
+    PROJECT_ROOT,
+    "site_media",
+    "media",
+)
+
+# Set development email port
+EMAIL_PORT = 1025
+
+# Should debug toolbar patch settings
+DEBUG_TOOLBAR_PATCH_SETTINGS = DEBUG
+
+# Should we compile less files clientside
+LESS_COMPILE_CLIENTSIDE = DEBUG
+
+# If we have external settings load data
+if os.path.exists(
+        os.path.abspath(os.path.join(BASE_DIR, 'config/settings.py'))):
+    with open(os.path.abspath(
+            os.path.join(BASE_DIR, 'config/settings.py'))) as f:
+        exec f
